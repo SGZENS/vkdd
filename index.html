@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Propuesta funcional v2 — Karen Daniela</title>
+<link rel="icon" type="image/png" href="assets/images/logo-favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css?v=20260903-lookup-button">
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<nav class="nav">
+  <div class="wrap nav-top">
+    <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menú">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <button class="logo" onclick="nav('home')">
+      <img class="logo-image" src="assets/images/logo-kd.png" alt="Variedades Karen Daniela">
+    </button>
+    <div class="promo-pills">
+      <button class="pill hot" onclick="goCategory('ofertas')"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.6 12.1 12.9 4.4a2 2 0 0 0-1.4-.6H5a2 2 0 0 0-2 2v6.5c0 .5.2 1 .6 1.4l7.7 7.7a2 2 0 0 0 2.8 0l6.5-6.5a2 2 0 0 0 0-2.8Z"/><circle cx="8" cy="8.5" r="1.3" fill="var(--berry)"/></svg>Ofertas</button>
+      <button class="pill new" onclick="goCategory('nuevo')">Lo más nuevo</button>
+    </div>
+    <div class="nav-icons">
+      <button class="home-icon-mobile" onclick="nav('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg></button>
+      <div class="search-wrap" id="search-wrap">
+        <button class="icon-btn" onclick="toggleSearchBox()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+        <div class="search-popover" id="search-popover">
+          <input type="text" id="header-search-input" placeholder="Buscar productos..." onkeydown="if(event.key==='Enter') runHeaderSearch()">
+          <button onclick="runHeaderSearch()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+        </div>
+      </div>
+      <button class="icon-btn" onclick="nav('cart')"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-count">0</span></button>
+      <div class="account-dropdown" id="account-dropdown">
+        <button class="account-trigger" onclick="toggleAccountMenu()" id="account-trigger-btn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="long" id="account-trigger-label">Iniciar sesión</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="account-panel" id="account-panel"></div>
+      </div>
+    </div>
+  </div>
+  <div class="mega-row wrap" id="mega-row"></div>
+  <div class="mobile-menu" id="mobile-menu"></div>
+</nav>
+
+<main>
+
+<section id="view-home" class="view active">
+  <section class="hero">
+    <div class="hero-carousel" id="hero-carousel">
+      <div class="hero-slides" id="hero-slides"></div>
+      <button class="hero-arrow left" onclick="heroPrev()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="hero-arrow right" onclick="heroNext()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 18l6-6-6-6"/></svg></button>
+      <div class="hero-dots" id="hero-dots"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head"><div><div class="section-eyebrow">Explora</div><h2>Comprar por categoría</h2></div></div>
+      <div class="cat-row" id="home-categories"></div>
+    </div>
+  </section>
+
+  <section class="section promo-section">
+    <div class="wrap">
+      <div class="section-head"><div><div class="section-eyebrow">Selecciones especiales</div><h2>Promos para ti</h2></div></div>
+      <div class="promo-grid">
+        <button class="promo-card promo-sweaters" onclick="goCategory('hombre','Chumpas')">
+          <span class="promo-kicker">Temporada especial</span><strong>Sudaderas navideñas</strong><small>Calientitas y con mucho estilo</small><span class="promo-link">Comprar ahora →</span>
+        </button>
+        <button class="promo-card promo-wallets" onclick="goCategory('mujer','Bolsos')">
+          <span class="promo-kicker">Accesorios</span><strong>Billeteras para papá</strong><small>Detalles prácticos para consentirlo</small><span class="promo-link">Ver colección →</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-head"><div><div class="section-eyebrow">Recién llegados</div><h2>Recién ingreso</h2></div></div>
+      <div class="home-products-carousel" id="home-new-carousel"></div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0;">
+    <div class="wrap">
+      <div class="section-head"><div><div class="section-eyebrow">Lo más pedido</div><h2>Productos en tendencia</h2></div></div>
+      <div class="home-products-carousel" id="home-trending-carousel"></div>
+    </div>
+  </section>
+
+  <section class="trust-bar">
+    <div class="wrap trust-inner">
+      <div class="trust-item"><div class="trust-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div><div class="trust-text"><b>Calidad garantizada</b><span>Marcas originales</span></div></div>
+      <div class="trust-item"><div class="trust-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div><div class="trust-text"><b>Envío gratis</b><span>En compras seleccionadas</span></div></div>
+      <div class="trust-item"><div class="trust-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3"/></svg></div><div class="trust-text"><b>Pago contra entrega</b><span>Sin riesgo, sin anticipo</span></div></div>
+      <div class="trust-item"><div class="trust-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.36 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div><div class="trust-text"><b>Llámanos</b><span>+502 7947 5188</span></div></div>
+    </div>
+  </section>
+</section>
+
+<section id="view-category" class="view">
+  <div class="wrap" style="padding-top:30px;padding-bottom:60px;">
+    <div class="breadcrumb" id="cat-breadcrumb"></div>
+    <div class="cat-page-header" id="cat-page-header"></div>
+    <button class="filters-toggle-mobile" onclick="openFilterModal()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M7 12h10M10 18h4"/></svg> Filtros
+    </button>
+    <div class="cat-layout">
+      <div class="filter-box" id="filter-box"></div>
+      <div>
+        <div class="cat-toolbar">
+          <input class="search-input" id="search-input" placeholder="Buscar por nombre" oninput="applyFilters()">
+          <select class="sort-select" id="sort-select" onchange="applyFilters()">
+            <option value="">Ordenar por</option>
+            <option value="price-asc">Precio: menor a mayor</option>
+            <option value="price-desc">Precio: mayor a menor</option>
+            <option value="name-asc">Nombre A-Z</option>
+          </select>
+        </div>
+        <div class="result-count" id="result-count"></div>
+        <div class="product-grid" id="cat-products"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="view-cart" class="view">
+  <div class="wrap" style="padding-top:30px;padding-bottom:60px;">
+    <h2 style="font-size:27px;margin-bottom:24px;">Tu carrito</h2>
+    <div class="cart-empty" id="cart-empty">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <p>Tu carrito está vacío por ahora.</p>
+      <button class="btn-primary" onclick="nav('home')">Ir a comprar</button>
+    </div>
+    <div class="cart-layout" id="cart-layout" style="display:none;">
+      <div class="cart-items" id="cart-items"></div>
+      <div class="cart-summary" id="cart-summary">
+        <h3>Resumen del pedido</h3>
+        <div class="summary-row"><span>Subtotal</span><span id="cart-subtotal">Q. 0</span></div>
+        <div class="summary-row"><span>Envío</span><span>Se calcula al confirmar</span></div>
+        <div class="summary-row total"><span>Total</span><b id="cart-total">Q. 0</b></div>
+        <button class="btn-primary" style="width:100%;justify-content:center;margin-top:18px;" onclick="nav('checkout')">Proceder al pago</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="view-checkout" class="view">
+  <div class="wrap" style="padding-top:30px;padding-bottom:60px;">
+    <div class="checkout-shell">
+      <div class="checkout-steps" id="checkout-steps"></div>
+      <div class="order-summary-mini"><span>Total a pagar</span><b id="checkout-total">Q. 0</b></div>
+
+      <div class="checkout-panel active" data-step="1">
+        <h3>1. ¿Cómo deseas recibir tu pedido?</h3>
+        <div class="delivery-options">
+          <label class="delivery-option"><input type="radio" name="delivery-method" value="delivery" checked onchange="toggleDeliveryFields()"><span><b>Entrega a domicilio</b><small>Recíbelo en la dirección indicada</small></span></label>
+          <label class="delivery-option"><input type="radio" name="delivery-method" value="pickup" onchange="toggleDeliveryFields()"><span><b>Recoger en tienda</b><small>Puerto Barrios, Izabal</small></span></label>
+        </div>
+        <div class="checkout-nav"><span></span><button class="btn-primary" onclick="validateStep(1)">Continuar</button></div>
+       </div>
+
+       <div class="checkout-panel" data-step="2">
+        <h3>2. Dirección de envío</h3>
+        <div class="field"><label>Nombre completo</label><input type="text" id="addr-name" placeholder="Nombre y apellido"><div class="field-error" id="addr-name-error"></div></div>
+        <div class="field-row">
+          <div class="field"><label>Teléfono</label><input type="text" id="addr-phone" placeholder="0000-0000"><div class="field-error" id="addr-phone-error"></div></div>
+          <div class="field"><label>Departamento / municipio</label><input type="text" id="addr-city" placeholder="Puerto Barrios, Izabal"><div class="field-error" id="addr-city-error"></div></div>
+        </div>
+        <div class="field"><label>Dirección exacta</label><input type="text" id="addr-line" placeholder="6ta avenida, zona 1..."><div class="field-error" id="addr-line-error"></div></div>
+        <div class="field"><label>Punto de referencia</label><input type="text" id="addr-ref" placeholder="Frente a..., color de casa, etc."><div class="field-error" id="addr-ref-error"></div></div>
+        <div class="pickup-store-address" id="pickup-store-address"><strong>Dirección de recogida</strong><span>6ta Avenida entre 14 y 15 Calle, Puerto Barrios</span><small>Esta dirección corresponde a la tienda y no se puede modificar.</small></div>
+        <div class="checkout-nav"><button class="btn-secondary" onclick="goCheckoutStep(1)">Atrás</button><button class="btn-primary" onclick="validateStep(2)">Continuar</button></div>
+      </div>
+
+      <div class="checkout-panel" data-step="3">
+        <h3>3. Datos de facturación</h3>
+        <label class="cf-check"><input type="checkbox" id="bill-cf" onchange="toggleCF()"> Facturar como CF</label>
+        <div class="field"><label>NIT</label><input type="text" id="bill-nit" placeholder="CF o número de NIT"><div class="field-error" id="bill-nit-error"></div></div>
+        <div class="field"><label>Nombre de facturación</label><input type="text" id="bill-name" placeholder="Nombre completo o razón social"><div class="field-error" id="bill-name-error"></div></div>
+        <div class="checkout-nav"><button class="btn-secondary" onclick="goCheckoutStep(2)">Atrás</button><button class="btn-primary" onclick="validateStep(3)">Continuar</button></div>
+      </div>
+
+      <div class="checkout-panel" data-step="4">
+        <h3>4. Método de pago</h3>
+        <div class="coupon-box">
+          <label for="coupon-code">Cupón de descuento</label>
+          <div class="coupon-row"><input type="text" id="coupon-code" placeholder="Ej. KD10"><button type="button" class="btn-secondary" onclick="applyCoupon()">Aplicar</button></div>
+          <div class="coupon-message" id="coupon-message"></div>
+        </div>
+        <div class="card-badges"><div>VISA</div><div>MC</div><div>AMEX</div></div>
+        <div class="field"><label>Nombre en la tarjeta</label><input type="text" id="card-name" placeholder="Como aparece en la tarjeta"><div class="field-error" id="card-name-error"></div></div>
+        <div class="field"><label>Número de tarjeta</label><input type="text" id="card-number" maxlength="19" placeholder="0000 0000 0000 0000"><div class="field-error" id="card-number-error"></div></div>
+        <div class="field-row">
+          <div class="field"><label>Vencimiento (MM/AA)</label><input type="text" id="card-exp" maxlength="5" placeholder="MM/AA"><div class="field-error" id="card-exp-error"></div></div>
+          <div class="field"><label>CVV</label><input type="text" id="card-cvv" maxlength="4" placeholder="123"><div class="field-error" id="card-cvv-error"></div></div>
+        </div>
+        <div class="field"><label>Número de referencia (opcional)</label><input type="text" id="card-ref" placeholder="Referencia de la transacción"></div>
+        <div class="checkout-nav"><button class="btn-secondary" onclick="goCheckoutStep(3)">Atrás</button><button class="btn-primary" onclick="validateStep(4)">Confirmar pago</button></div>
+      </div>
+
+      <div class="checkout-panel" data-step="5">
+        <div class="cart-confirmation" style="padding:20px 0;">
+          <div class="confirm-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <h2>¡Pago confirmado!</h2>
+          <p>Tu orden <span class="order-num">#<span id="co-order-number"></span></span> fue registrada. Te enviaremos la confirmación y coordinaremos la entrega.</p>
+          <div id="completed-order-details" class="completed-order-details"></div>
+          <button class="btn-primary" onclick="nav('home')">Seguir comprando</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="view-track" class="view">
+  <div class="wrap" style="padding-top:36px;padding-bottom:60px;">
+    <h2 style="font-size:27px;margin-bottom:22px;">Consultar mi pedido</h2>
+    <div class="track-shell">
+      <div class="track-form">
+        <div class="field"><label>Número de pedido</label><input type="text" id="track-order-no" placeholder="Ej. 214"></div>
+        <div class="field"><label>Correo o teléfono usado en la compra</label><input type="text" id="track-contact" placeholder="correo@ejemplo.com"></div>
+        <button class="btn-primary" style="width:100%;justify-content:center;" onclick="trackOrder()">Buscar pedido</button>
+      </div>
+      <div class="track-result" id="track-result" style="display:none;"></div>
+    </div>
+  </div>
+</section>
+
+<section id="view-account" class="view">
+  <div class="wrap" style="padding-top:36px;padding-bottom:60px;">
+    <div class="account-shell">
+      <img class="auth-logo" src="assets/images/logo-favicon.png" alt="Variedades Karen Daniela">
+      <h2 class="auth-title" id="auth-title">Iniciar sesión</h2>
+      <p class="auth-subtitle" id="auth-subtitle">Ingresa tus credenciales para continuar</p>
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="field"><label for="login-email">Correo electrónico</label><input type="text" id="login-email" placeholder="nombre@correo.com"><div class="field-error" id="login-email-error"></div></div>
+        <div class="field"><label for="login-password">Contraseña</label><input type="password" id="login-password" placeholder="••••••••"><div class="field-error" id="login-password-error"></div></div>
+        <label class="auth-check"><input type="checkbox"> Mantener sesión activa <a href="#" onclick="event.preventDefault();showToast('Puedes restablecer tu contraseña desde soporte')">Recuperar contraseña</a></label>
+        <button type="submit" class="btn-full">Iniciar sesión</button>
+        <div class="auth-switch-copy">¿Aún no tienes una cuenta?<button type="button" class="auth-outline-btn" onclick="switchAuthTab('register')">Crear cuenta nueva</button><button type="button" class="auth-consult-btn" onclick="showPurchaseLookup()">Consultar</button></div>
+      </form>
+      <form id="form-register" style="display:none;" onsubmit="handleRegister(event)">
+        <div class="field"><label for="reg-name">Nombre completo</label><input type="text" id="reg-name" placeholder="Tu nombre"><div class="field-error" id="reg-name-error"></div></div>
+        <div class="field"><label for="reg-email">Correo electrónico</label><input type="text" id="reg-email" placeholder="nombre@correo.com"><div class="field-error" id="reg-email-error"></div></div>
+        <div class="field"><label for="reg-password">Contraseña</label><input type="password" id="reg-password" placeholder="Mínimo 4 caracteres"><div class="field-error" id="reg-password-error"></div></div>
+        <div class="field"><label for="reg-password-confirm">Confirmar contraseña</label><input type="password" id="reg-password-confirm" placeholder="Repite tu contraseña"><div class="field-error" id="reg-password-confirm-error"></div></div>
+        <button type="submit" class="btn-full">Crear cuenta</button>
+        <div class="auth-switch-copy">¿Ya tienes una cuenta?<button type="button" class="auth-outline-btn" onclick="switchAuthTab('login')">Iniciar sesión</button><button type="button" class="auth-consult-btn" onclick="showPurchaseLookup()">Consultar</button></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section id="view-account-lookup" class="view">
+  <div class="wrap" style="padding-top:36px;padding-bottom:60px;">
+    <div class="account-shell lookup-shell">
+      <img class="auth-logo" src="assets/images/logo-favicon.png" alt="Variedades Karen Daniela">
+      <h2 class="auth-title">Consultar cuenta</h2>
+      <p class="auth-subtitle">Busca la cuenta asociada al correo que usaste en una compra</p>
+      <form id="form-purchase-lookup" onsubmit="handlePurchaseLookup(event)">
+        <div class="field">
+          <label for="purchase-email">Correo electrónico</label>
+          <input type="email" id="purchase-email" placeholder="correo@ejemplo.com">
+          <div class="field-error" id="purchase-email-error"></div>
+        </div>
+        <button type="submit" class="lookup-btn">Consultar</button>
+        <div id="purchase-lookup-message" class="purchase-lookup-message"></div>
+      </form>
+      <button type="button" class="lookup-back-btn" onclick="nav('account')">Volver</button>
+    </div>
+  </div>
+</section>
+
+<section id="view-profile" class="view">
+  <div class="wrap" style="padding-top:36px;padding-bottom:60px;">
+    <h2 style="font-size:27px;margin-bottom:22px;">Mi perfil</h2>
+    <div class="profile-card">
+      <div class="profile-grid">
+        <div class="profile-field"><span>Nombre</span><b id="profile-name">—</b></div>
+        <div class="profile-field"><span>Correo</span><b id="profile-email">—</b></div>
+        <div class="profile-field"><span>Teléfono</span><b>No registrado</b></div>
+      </div>
+      <button class="btn-primary" onclick="nav('orders')">Ver mis pedidos</button>
+    </div>
+  </div>
+</section>
+
+<section id="view-orders" class="view">
+  <div class="wrap" style="padding-top:36px;padding-bottom:60px;">
+    <h2 style="font-size:24px;margin-bottom:6px;" id="orders-username">—</h2>
+    <p style="color:var(--charcoal);font-size:13px;margin-bottom:22px;">Historial de compras y datos de cuenta</p>
+    <div class="orders-shell">
+      <div class="orders-tabs">
+        <button class="orders-tab active" data-otab="ordenes" onclick="switchOrdersTab('ordenes')">Órdenes</button>
+        <button class="orders-tab" data-otab="direcciones" onclick="switchOrdersTab('direcciones')">Direcciones</button>
+        <button class="orders-tab" data-otab="facturacion" onclick="switchOrdersTab('facturacion')">Datos facturación</button>
+      </div>
+      <div class="orders-panel" id="panel-ordenes">
+        <table class="order-table">
+          <thead>
+            <tr><th>No</th><th>Fecha</th><th>Estado pago</th><th>Estado entrega</th><th>Total</th><th>Acciones</th></tr>
+          </thead>
+          <tbody id="orders-tbody"></tbody>
+        </table>
+      </div>
+      <div class="orders-panel" id="panel-direcciones" style="display:none;">
+        <div class="address-actions-row">
+          <div class="address-summary">Direcciones guardadas</div>
+          <button class="btn-primary" onclick="openAddressModal()">Agregar dirección</button>
+        </div>
+        <div id="addresses-list" class="addresses-list"></div>
+      </div>
+      <div class="orders-panel" id="panel-facturacion" style="display:none;">
+        <div class="field"><label>NIT</label><input type="text" placeholder="CF"></div>
+        <div class="field"><label>Nombre de facturación</label><input type="text" placeholder="Nombre completo"></div>
+        <button class="btn-primary" onclick="showToast('Datos de facturación guardados (demo)')">Guardar</button>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+ 
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo"><img src="assets/images/logo-favicon.png" alt="Logo Variedades Karen Daniela"></div>
+        <p>Ropa y accesorios de las marcas más reconocidas para toda la familia. Puerto Barrios, Izabal.</p>
+        <div class="footer-social" aria-label="Redes sociales">
+          <a href="#" aria-label="Facebook"><img src="assets/images/icon-facebook.png?v=2" alt=""></a>
+          <a href="#" aria-label="Instagram"><img src="assets/images/icon-instagram.png" alt=""></a>
+          <a href="#" aria-label="TikTok"><img src="assets/images/icon-tiktok.png" alt=""></a>
+          <a href="#" aria-label="WhatsApp"><img src="assets/images/icon-whatsapp.png" alt=""></a>
+        </div>
+      </div>
+      <div><h4>Contáctenos</h4><ul class="footer-contact"><li>6ta Avenida entre 14 y 15 Calle, Puerto Barrios</li><li>info@variedadeskarendaniela.com</li><li>+502 7947 5188</li></ul></div>
+      <div><h4>Enlaces</h4><ul><li><button onclick="nav('home')">Inicio</button></li><li><button onclick="goCategory('ofertas')">Ofertas</button></li><li><button onclick="nav('account')">Mi cuenta</button></li><li><button onclick="nav('track')">Consultar mi pedido</button></li></ul></div>
+      <div><h4>Acerca de KD</h4><ul><li><button onclick="goToStories()">KD stories</button></li></ul></div>
+    </div>
+    <div class="footer-bottom"><span>© Variedades Karen Daniela. Todos los derechos reservados.</span></div>
+  </div>
+</footer>
+
+<a class="whatsapp-float" href="https://wa.me/50235723806?text=Hola%20Variedades%20Karen%20Daniela%2C%20quiero%20informaci%C3%B3n" target="_blank" rel="noopener noreferrer" aria-label="Escribir por WhatsApp">
+  <img src="assets/images/icon-whatsapp.png" alt="">
+</a>
+
+<div class="modal-overlay" id="product-modal-overlay">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeProductModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="modal-head">Detalle de producto</div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="filter-modal-overlay">
+  <div class="modal-box" style="max-width:420px;">
+    <button class="modal-close" onclick="closeFilterModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="modal-head">Filtros</div>
+    <div id="filter-box-mobile"></div>
+    <div style="display:flex;gap:10px;padding:16px 20px;">
+      <button class="btn-add" style="flex:1;" onclick="clearFilters()">Limpiar</button>
+      <button class="btn-primary" style="flex:1;justify-content:center;" onclick="closeFilterModal()">Ver resultados</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="address-modal-overlay">
+  <div class="modal-box address-modal-box">
+    <button class="modal-close" onclick="closeAddressModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="modal-head">Agregar dirección</div>
+    <form id="address-form" onsubmit="handleAddressSubmit(event)">
+      <div class="field-row">
+        <div class="field">
+          <label>Nombre</label>
+          <input type="text" name="name" placeholder="Ej. María López">
+        </div>
+
+        <div class="field">
+          <label>Teléfono</label>
+          <input type="tel" name="phone" placeholder="Ej. 4567 8901">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Departamento</label>
+          <select name="department" id="address-departamento" onchange="updateMunicipalityOptions()">
+            <option value="">Selecciona departamento</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Municipio</label>
+          <select name="municipality" id="address-municipio">
+            <option value="">Selecciona municipio</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Dirección exacta</label>
+        <input type="text" name="address" placeholder="Calle, zona, casa/apt">
+      </div>
+      <div class="field">
+        <label>Referencia</label>
+        <input type="text" name="reference" placeholder="Frente a la panadería, etc.">
+      </div>
+      <button type="submit" class="btn-primary" style="width:100%; justify-content:center;">Guardar dirección</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="order-detail-overlay">
+  <div class="modal-box order-detail-box">
+    <button class="modal-close" onclick="closeOrderDetail()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="modal-head">Detalle del pedido</div>
+    <div class="order-detail-content" id="order-detail-content"></div>
+  </div>
+</div>
+
+<script src="assets/js/app.js?v=20260903-auth-no-tabs"></script>
+
+</body>
+</html>
