@@ -68,6 +68,47 @@ const SUBCATEGORY_IMAGES = {
 };
 
 const state = { cat:null, subcat:null, subsub:null, showAll:false };
+const ROUTE_STORAGE_KEY = 'kd_last_route_v1';
+const AUTH_STORAGE_KEY = 'kd_auth_v1';
+let suppressRouteSave = false;
+const SEARCH_SYNONYMS = {
+  ropa:['vestido','blusa','camisa','playera','polo','chumpa','sudadera','conjunto','jeans','pantalon'],
+  calzado:['zapato','tenis','sandalia'],
+  accesorio:['cadena','bolso','cartera','collar'],
+  nina:['niña','ninas','niñas','girl'],
+  nino:['niño','ninos','niños','boy'],
+  mujer:['dama','señora'],
+  hombre:['caballero','varon']
+};
+function normalizeSearch(value){
+  return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').trim();
+}
+function levenshtein(a,b){
+  const row = Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){
+    let prev = row[0]; row[0] = i;
+    for(let j=1;j<=b.length;j++){
+      const next = row[j];
+      row[j] = Math.min(row[j]+1,row[j-1]+1,prev+(a[i-1]===b[j-1]?0:1));
+      prev = next;
+    }
+  }
+  return row[b.length];
+}
+function productMatchesSearch(product, query){
+  const q = normalizeSearch(query);
+  if(!q) return true;
+  const haystack = normalizeSearch([product.name,product.brand,product.cat,product.subcat,product.subsub,(product.colors||[]).map(c=>c.name).join(' ')].join(' '));
+  const words = haystack.split(/\s+/);
+  return q.split(/\s+/).every(term=>{
+    if(words.some(word=>word.includes(term) || levenshtein(term,word)<=Math.max(1,Math.floor(term.length/4)))) return true;
+    return Object.keys(SEARCH_SYNONYMS).some(key=>{
+      const aliases = SEARCH_SYNONYMS[key];
+      return aliases.some(alias=>normalizeSearch(alias)===term) &&
+        (haystack.includes(key) || aliases.some(alias=>haystack.includes(normalizeSearch(alias))));
+    });
+  });
+}
 const filters = { min:null, max:null, ofertas:false, colors:[], sizes:[], brands:[] };
 const cart = {};
 const cartVariant = {};
@@ -96,14 +137,44 @@ let appliedCoupon = null;
 let completedOrder = null;
 
 const SAMPLE_ORDERS = [
-  {no:214, fecha:'2026-08-20', pago:'Confirmado', entrega:'PAGADO Y EN BODEGA', ok:true, total:980, contact:{email:'cliente@ejemplo.com',phone:'5025555214'}},
-  {no:213, fecha:'2026-08-14', pago:'Confirmado', entrega:'ENTREGADO', ok:true, total:650, contact:{email:'ana@ejemplo.com',phone:'5025555213'}},
-  {no:210, fecha:'2026-07-30', pago:'Procesado', entrega:'ANULADO', ok:false, total:410, contact:{email:'maria@ejemplo.com',phone:'5025555210'}},
-  {no:198, fecha:'2026-07-02', pago:'Confirmado', entrega:'PAGADO Y EN BODEGA', ok:true, total:295, contact:{email:'luis@ejemplo.com',phone:'5025555198'}}
+  {no:214, fecha:'2026-08-20', pago:'Confirmado', entrega:'PAGADO Y EN BODEGA', ok:true, total:980, contact:{email:'cliente@ejemplo.com',phone:'5025555214'}, items:[{product:PRODUCTS.find(p=>p.id==='p23'),qty:1,color:'Dorado',size:'Única'}]},
+  {no:213, fecha:'2026-08-14', pago:'Confirmado', entrega:'ENTREGADO', ok:true, total:650, contact:{email:'ana@ejemplo.com',phone:'5025555213'}, items:[{product:PRODUCTS.find(p=>p.id==='p37'),qty:1,color:'Rojo',size:'M'}]},
+  {no:210, fecha:'2026-07-30', pago:'Procesado', entrega:'ANULADO', ok:false, total:410, contact:{email:'maria@ejemplo.com',phone:'5025555210'}, items:[{product:PRODUCTS.find(p=>p.id==='p31'),qty:1,color:'Negro',size:'9'}]},
+  {no:198, fecha:'2026-07-02', pago:'Confirmado', entrega:'PAGADO Y EN BODEGA', ok:true, total:295, contact:{email:'luis@ejemplo.com',phone:'5025555198'}, items:[{product:PRODUCTS.find(p=>p.id==='p35'),qty:1,color:'Rosa',size:'8'}]}
 ];
 const ORDERS_STORAGE_KEY = 'kd_orders_v1';
 let orderHistory = loadOrderHistory();
 let authReturnTab = 'login';
+function getRouteSnapshot(view){
+  return {
+    view:view,
+    state:{...state},
+    query:window.__searchQuery||'',
+    filters:{
+      min:filters.min,max:filters.max,ofertas:filters.ofertas,
+      colors:[...filters.colors],sizes:[...filters.sizes],brands:[...filters.brands]
+    },
+    search:$('search-input') ? $('search-input').value : '',
+    sort:$('sort-select') ? $('sort-select').value : ''
+  };
+}
+function saveRoute(view, historyMode){
+  const snapshot = getRouteSnapshot(view);
+  localStorage.setItem(ROUTE_STORAGE_KEY, JSON.stringify(snapshot));
+  if(historyMode==='push') history.pushState(snapshot, '', window.location.href);
+  if(historyMode==='replace') history.replaceState(snapshot, '', window.location.href);
+}
+function restoreAuth(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null');
+    if(saved && USERS_DB[saved.email]){
+      loggedIn = true;
+      currentUser = {name:USERS_DB[saved.email].name,email:saved.email};
+    }
+  } catch (err) {
+    console.warn('No se pudo restaurar la sesión.', err);
+  }
+}
 function loadOrderHistory(){
   try {
     const saved = JSON.parse(localStorage.getItem(ORDERS_STORAGE_KEY) || '[]');
@@ -130,14 +201,21 @@ function showToast(msg){
   window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
 }
 
-function nav(view){
+function nav(view, options){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   $('view-'+view).classList.add('active');
   window.scrollTo({top:0, behavior:'smooth'});
   closeMobileMenu();
   closeAccountMenu();
+  if(!options || !options.skipHistory) saveRoute(view, 'push');
   if(view==='cart') renderCart();
   if(view==='profile') renderProfile();
+  if(view==='track'){
+    $('track-order-no').value = '';
+    $('track-contact').value = '';
+    $('track-result').style.display = 'none';
+    $('track-result').innerHTML = '';
+  }
   if(view==='orders') renderOrders();
   if(view==='checkout') openCheckout();
   if(view==='track'){ $('track-result').style.display='none'; }
@@ -464,7 +542,9 @@ function goCategory(catKey, subcatName, subsubName, showAll){
   state.cat = catKey; state.subcat = subcatName || null; state.subsub = subsubName || null; state.showAll = !!showAll;
   filters.min=null; filters.max=null; filters.ofertas=false; filters.colors=[]; filters.sizes=[]; filters.brands=[];
   renderFilterBox();
+  suppressRouteSave = true;
   applyFilters();
+  suppressRouteSave = false;
   nav('category');
 }
 
@@ -488,7 +568,7 @@ function getCategoryProducts(){
   if(state.cat==='nuevo') return PRODUCTS.filter(p=>p.isNew);
   if(state.cat==='busqueda'){
     const q = (window.__searchQuery||'').toLowerCase();
-    return PRODUCTS.filter(p=>p.name.toLowerCase().includes(q));
+    return PRODUCTS.filter(p=>productMatchesSearch(p,q));
   }
   let list = PRODUCTS.filter(p=>p.cat===state.cat);
   if(state.subcat) list = list.filter(p=>p.subcat===state.subcat);
@@ -584,12 +664,13 @@ function applyFilters(){
   renderBreadcrumb();
   if(state.cat && !state.subcat && !state.subsub && !state.showAll && !['ofertas','nuevo','busqueda'].includes(state.cat)){
     renderSubcategoryLanding();
+    if(!suppressRouteSave && $('view-category').classList.contains('active')) saveRoute('category', 'replace');
     return;
   }
   $('view-category').classList.remove('category-landing');
   let list = getCategoryProducts();
   const search = ($('search-input').value||'').toLowerCase().trim();
-  if(search) list = list.filter(p=>p.name.toLowerCase().includes(search));
+  if(search) list = list.filter(p=>productMatchesSearch(p,search));
   if(filters.min!=null) list = list.filter(p=>p.price>=filters.min);
   if(filters.max!=null) list = list.filter(p=>p.price<=filters.max);
   if(filters.ofertas) list = list.filter(p=>p.oldPrice);
@@ -610,6 +691,7 @@ function applyFilters(){
   $('cat-page-header').innerHTML = '<h2>'+title+'</h2>';
   $('result-count').textContent = list.length + ' producto' + (list.length===1?'':'s');
   $('cat-products').innerHTML = list.length ? list.map(productCard).join('') : '<div class="empty-products">No hay productos que coincidan con estos filtros.</div>';
+  if(!suppressRouteSave && $('view-category').classList.contains('active')) saveRoute('category', 'replace');
 }
 
 /* ---------- cart ---------- */
@@ -801,10 +883,11 @@ function trackOrder(){
   else if(order.entrega==='PAGADO Y EN BODEGA') currentIndex = 2;
   else if(order.entrega==='ANULADO') currentIndex = -1;
   else currentIndex = 1;
-  const trackedProduct = PRODUCTS.find(item=>item.image) || PRODUCTS[0];
   let html = '<div style="font-size:14px;font-weight:600;margin-bottom:4px;">Pedido #'+order.no+'</div><div style="font-size:12.5px;color:var(--charcoal);margin-bottom:6px;">Fecha: '+order.fecha+' · Total: Q. '+order.total+'</div>';
-  if(trackedProduct){
-    html += '<div class="tracked-product"><div class="tracked-product-image">'+(trackedProduct.image?'<img src="assets/images/products/'+trackedProduct.image+'" alt="'+trackedProduct.name+'">':'')+'</div><div><h3>'+trackedProduct.name+'</h3><p><b>Código:</b> '+(trackedProduct.code || 'KD-'+trackedProduct.id.toUpperCase())+'</p><p><b>Precio:</b> Q. '+trackedProduct.price+'</p><p><b>Cantidad:</b> 1</p><p><b>Color:</b> '+(trackedProduct.colors ? trackedProduct.colors[0].name : 'Único')+'</p></div></div>';
+  if(order.items && order.items.length){
+    html += order.items.map(item=>'<div class="tracked-product"><div class="tracked-product-image">'+(item.product.image?'<img src="assets/images/products/'+item.product.image+'" alt="'+item.product.name+'">':'')+'</div><div><h3>'+item.product.name+'</h3><p><b>Código:</b> '+(item.product.code || 'KD-'+item.product.id.toUpperCase())+'</p><p><b>Precio:</b> Q. '+item.product.price+'</p><p><b>Cantidad:</b> '+item.qty+'</p><p><b>Color:</b> '+item.color+'</p></div></div>').join('');
+  } else {
+    html += '<div class="track-not-found">Este pedido no tiene detalle de productos disponible.</div>';
   }
   if(currentIndex===-1){
     html += '<div class="track-not-found">Este pedido fue anulado.</div>';
@@ -881,6 +964,7 @@ function handleLogin(e){
   }
   loggedIn = true;
   currentUser = { name: user.name, email: user.email };
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentUser));
   updateAccountHeader();
   showToast('Sesión iniciada');
   nav('profile');
@@ -907,6 +991,7 @@ function handleRegister(e){
 }
 function logout(){
   loggedIn = false; currentUser = null;
+  localStorage.removeItem(AUTH_STORAGE_KEY);
   updateAccountHeader();
   switchAuthTab('login');
   $('form-login').reset();
@@ -1036,19 +1121,21 @@ function renderOrders(){
 
 function showOrderDetails(orderNo){
   const order = getAllOrders().find(item => item.no === orderNo);
-  const product = PRODUCTS.find(item => item.featured) || PRODUCTS[0];
-  if(!order || !product) return;
-  const discount = product.oldPrice ? product.oldPrice - product.price : 0;
+  if(!order) return;
+  const items = order.items || [];
   $('order-detail-content').innerHTML =
     '<div class="order-detail-meta"><span>Pedido #'+order.no+'</span><span>'+order.fecha+'</span></div>'+
-    '<div class="order-product-detail">'+
-      '<div class="order-product-image">'+(product.image ? '<img src="assets/images/products/'+product.image+'" alt="'+product.name+'">' : 'Imagen<br>del producto')+'</div>'+
-      '<div class="order-product-info"><h3>'+product.name+'</h3>'+
-      '<p><b>Código:</b> '+(product.code || 'KD-'+product.id.toUpperCase())+'</p>'+
-      '<p><b>Color:</b> '+(product.colors ? product.colors[0].name : 'Único')+'</p>'+
-      '<p><b>Talla:</b> '+(product.sizes ? Object.keys(product.sizes)[0] : 'Única')+'</p>'+
-      '<p class="order-product-price">'+(discount ? '<s>Q. '+product.oldPrice+'</s> ' : '')+'Q. '+product.price+(discount ? ' <em>Oferta</em>' : '')+'</p></div>'+
-    '</div>'+
+    (items.length ? items.map(item=>{
+      const product = item.product;
+      return '<div class="order-product-detail">'+
+        '<div class="order-product-image">'+(product.image ? '<img src="assets/images/products/'+product.image+'" alt="'+product.name+'">' : 'Imagen<br>del producto')+'</div>'+
+        '<div class="order-product-info"><h3>'+product.name+'</h3>'+
+        '<p><b>Código:</b> '+(product.code || 'KD-'+product.id.toUpperCase())+'</p>'+
+        '<p><b>Color:</b> '+item.color+'</p><p><b>Talla:</b> '+item.size+'</p>'+
+        '<p><b>Cantidad:</b> '+item.qty+'</p>'+
+        '<p class="order-product-price">'+(product.oldPrice ? '<s>Q. '+product.oldPrice+'</s> ' : '')+'Q. '+product.price+(product.oldPrice ? ' <em>Oferta</em>' : '')+'</p></div>'+
+      '</div>';
+    }).join('') : '<div class="track-not-found">Este pedido no tiene detalle de productos disponible.</div>')+
     '<div class="order-detail-total"><span>Estado: '+order.entrega+'</span><strong>Total: Q. '+order.total+'</strong></div>';
   $('order-detail-overlay').classList.add('open');
 }
@@ -1069,7 +1156,9 @@ function runHeaderSearch(){
   window.__searchQuery = q;
   filters.min=null; filters.max=null; filters.ofertas=false; filters.colors=[]; filters.sizes=[]; filters.brands=[];
   renderFilterBox();
+  suppressRouteSave = true;
   applyFilters();
+  suppressRouteSave = false;
   nav('category');
   closeSearchBox();
 }
@@ -1101,7 +1190,47 @@ function heroPrev(){ heroIndex = (heroIndex-1+HERO_SLIDES.length) % HERO_SLIDES.
 function heroGoTo(i){ heroIndex = i; updateHeroPosition(); resetHeroTimer(); }
 function resetHeroTimer(){ clearInterval(heroTimer); heroTimer = setInterval(heroNext, 4500); }
 
+function restoreLastRoute(){
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(ROUTE_STORAGE_KEY) || 'null'); } catch (err) { console.warn('No se pudo restaurar la sección anterior.', err); }
+  if(!saved || !saved.view) return;
+  if(saved.filters) Object.assign(filters, {
+    min:saved.filters.min == null ? null : saved.filters.min,
+    max:saved.filters.max == null ? null : saved.filters.max,
+    ofertas:!!saved.filters.ofertas,
+    colors:Array.isArray(saved.filters.colors) ? saved.filters.colors : [],
+    sizes:Array.isArray(saved.filters.sizes) ? saved.filters.sizes : [],
+    brands:Array.isArray(saved.filters.brands) ? saved.filters.brands : []
+  });
+  if(saved.state) Object.assign(state,saved.state);
+  window.__searchQuery = saved.query || '';
+  if($('search-input')) $('search-input').value = saved.search || '';
+  if($('sort-select')) $('sort-select').value = saved.sort || '';
+  if(saved.view==='category'){
+    renderFilterBox();
+    applyFilters();
+  }
+  nav(saved.view, {skipHistory:true});
+  history.replaceState(saved, '', window.location.href);
+}
+window.addEventListener('popstate', function(e){
+  const saved = e.state;
+  if(!saved || !saved.view) return;
+  if(saved.state) Object.assign(state,saved.state);
+  window.__searchQuery = saved.query || '';
+  if(saved.filters) Object.assign(filters, saved.filters);
+  if($('search-input')) $('search-input').value = saved.search || '';
+  if($('sort-select')) $('sort-select').value = saved.sort || '';
+  if(saved.view==='category'){
+    renderFilterBox();
+    applyFilters();
+  }
+  nav(saved.view, {skipHistory:true});
+  localStorage.setItem(ROUTE_STORAGE_KEY, JSON.stringify(saved));
+});
+
 /* ---------- init ---------- */
+restoreAuth();
 buildMegaRow();
 buildMobileMenu();
 updateAccountHeader();
@@ -1110,3 +1239,4 @@ renderHomeProducts();
 renderHeroSlides();
 resetHeroTimer();
 updateCartBadge();
+restoreLastRoute();
